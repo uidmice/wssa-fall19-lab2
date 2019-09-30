@@ -14,7 +14,10 @@
 //#define PD_OFF 8
 
 SemaphoreHandle_t sem;
-char *pcColorSeq=(char *) pvPortMalloc(11*sizeof(char));
+char *pcColorSeq=(char *) pvPortMalloc(21*sizeof(char)); //Max length of the color sequence is 20
+*pcColorSeq='\0';
+
+
 void setup() {
   pd_rgb_led_init();
 
@@ -24,12 +27,12 @@ void setup() {
   sem = xSemaphoreCreateBinary();
   xSemaphoreGive(sem);
 
-//  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 1, NULL);
-  portBASE_TYPE s2 = xTaskCreate(ReadInput, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 2, NULL);
+  portBASE_TYPE s2 = xTaskCreate(ReadInput, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 1, NULL);
 
   
   // check for creation errors
-  if ( sem==NULL || s2 != pdPASS  ) {
+  if ( sem==NULL || s1 != pdPASS || s2 != pdPASS  ) {
     SerialUSB.println(F("Creation problem"));
     while(1);
   }
@@ -41,15 +44,19 @@ void setup() {
 }
 
 static void ReadInput(void* arg){
+  char *pcCol = (char*) arg;
   while(1){
     xSemaphoreTake(sem, portMAX_DELAY);
-    int i = SerialUSB.available();
-
-    SerialUSB.println(i);
+    byte i = 0;
+    if (SerialUSB.available()<20 && SerialUSB.available()>0){
+      *(pcCol+i) = SerialUSB.read();
+      if (*(pcCol+i)!='\n' && *(pcCol+i)!='\r') 
+        i++;
+    }
+    *(pcCol+i)='\0';
+    xSemaphoreGive(sem);
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
-    xSemaphoreGive(sem);
-      vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
   }
     
     
@@ -58,6 +65,7 @@ static void ReadInput(void* arg){
 static void LEDBlink(void* arg){
   char *pcCol = (char*) arg;
   while(1){
+    xSemaphoreTake(sem, portMAX_DELAY);
     int i;
     for (i=0; i<strlen(pcCol); i++){
       switch(*(pcCol+i)){
@@ -100,9 +108,14 @@ static void LEDBlink(void* arg){
         default:
         SerialUSB.println("Unknown color");
       }
+      xSemaphoreGive(sem);
       vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
+      
+      xSemaphoreTake(sem, portMAX_DELAY);
       SerialUSB.println("Turning the LED off");
       pd_rgb_led(PD_OFF);
+      xSemaphoreGive(sem);
+
       vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
  
       
