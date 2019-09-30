@@ -14,20 +14,22 @@
 //#define PD_OFF 8
 
 SemaphoreHandle_t sem;
-char *pcColorSeq="RWRT";
+char *pcColorSeq=(char *) pvPortMalloc(11*sizeof(char));
 void setup() {
   pd_rgb_led_init();
 
   SerialUSB.begin(9600);
   while(!SerialUSB);
 
-  sem = xSemaphoreCreateCounting(1, 0);
+  sem = xSemaphoreCreateBinary();
   xSemaphoreGive(sem);
 
-  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 1, NULL);
+//  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 1, NULL);
+  portBASE_TYPE s2 = xTaskCreate(ReadInput, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+
   
   // check for creation errors
-  if ( sem==NULL || s1 != pdPASS  ) {
+  if ( sem==NULL || s2 != pdPASS  ) {
     SerialUSB.println(F("Creation problem"));
     while(1);
   }
@@ -39,14 +41,23 @@ void setup() {
 }
 
 static void ReadInput(void* arg){
+  while(1){
+    xSemaphoreTake(sem, portMAX_DELAY);
+    int i = SerialUSB.available();
+
+    SerialUSB.println(i);
+    vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
+
+    xSemaphoreGive(sem);
+      vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
+  }
+    
     
 }
 
 static void LEDBlink(void* arg){
   char *pcCol = (char*) arg;
   while(1){
-    xSemaphoreTake(sem, portMAX_DELAY);
-
     int i;
     for (i=0; i<strlen(pcCol); i++){
       switch(*(pcCol+i)){
@@ -97,7 +108,6 @@ static void LEDBlink(void* arg){
       
     }
     SerialUSB.println("Done");
-    xSemaphoreGive(sem);
   }
 }
 
