@@ -1,28 +1,54 @@
 #include <FreeRTOS_ARM.h>
-#include <PowerDue.h>
 #define LED_R 6
 #define LED_G 7
 #define LED_B 8
-//
-//#define PD_RED 1
-//#define PD_GREEN 2
-//#define PD_BLUE 3
-//#define PD_YELLOW 4
-//#define PD_PURPLE 5
-//#define PD_TIEL 6
-//#define PD_WHITE 7
-//#define PD_OFF 8
+#define PD_RED 1
+#define PD_GREEN 2
+#define PD_BLUE 3
+#define PD_YELLOW 4
+#define PD_PURPLE 5
+#define PD_TIEL 6
+#define PD_WHITE 7
+#define PD_OFF 8
+
+#define pd_rgb_led_init() { \
+  pinMode(LED_R, OUTPUT); \
+  pinMode(LED_G, OUTPUT); \
+  pinMode(LED_B, OUTPUT); \
+  digitalWrite(LED_R, LOW); \
+  digitalWrite(LED_G, LOW); \
+  digitalWrite(LED_B, LOW); \
+}
+
+#define pd_rgb_led(color) { \
+  if(color == PD_RED || color == PD_YELLOW || color == PD_PURPLE || color == PD_WHITE){ \
+    digitalWrite(LED_R, HIGH); \
+  }else{ \
+    digitalWrite(LED_R, LOW); \
+  } \
+  if(color == PD_GREEN || color == PD_YELLOW || color == PD_TIEL || color == PD_WHITE){ \
+    digitalWrite(LED_G, HIGH); \
+  }else{ \
+    digitalWrite(LED_G, LOW); \
+  } \
+  if(color == PD_BLUE || color == PD_PURPLE || color == PD_TIEL || color == PD_WHITE){ \
+    digitalWrite(LED_B, HIGH); \
+  }else{ \
+    digitalWrite(LED_B, LOW); \
+  } \
+}
 
 SemaphoreHandle_t sem;
-char *pcColorSeq=(char *) pvPortMalloc(21*sizeof(char)); //Max length of the color sequence is 20
-*pcColorSeq='\0';
-
+char pcColorSeq[20]; //Max length of the color sequence is 20
+pcColorSeq="0";
 
 void setup() {
   pd_rgb_led_init();
 
   SerialUSB.begin(9600);
   while(!SerialUSB);
+
+  SerialUSB.println(pcColorSeq);
 
   sem = xSemaphoreCreateBinary();
   xSemaphoreGive(sem);
@@ -45,10 +71,14 @@ void setup() {
 
 static void ReadInput(void* arg){
   char *pcCol = (char*) arg;
+
   while(1){
+            SerialUSB.println("Reading");
+
     xSemaphoreTake(sem, portMAX_DELAY);
     byte i = 0;
     if (SerialUSB.available()<20 && SerialUSB.available()>0){
+      SerialUSB.println(i);
       *(pcCol+i) = SerialUSB.read();
       if (*(pcCol+i)!='\n' && *(pcCol+i)!='\r') 
         i++;
@@ -65,6 +95,8 @@ static void ReadInput(void* arg){
 static void LEDBlink(void* arg){
   char *pcCol = (char*) arg;
   while(1){
+            SerialUSB.println("Blinking");
+
     xSemaphoreTake(sem, portMAX_DELAY);
     int i;
     for (i=0; i<strlen(pcCol); i++){
