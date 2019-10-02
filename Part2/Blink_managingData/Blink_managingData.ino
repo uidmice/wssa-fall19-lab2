@@ -39,8 +39,7 @@
 }
 
 SemaphoreHandle_t sem;
-char pcColorSeq[20]; //Max length of the color sequence is 20
-pcColorSeq="0";
+QueueHandle_t xQueue;
 
 void setup() {
   pd_rgb_led_init();
@@ -52,9 +51,11 @@ void setup() {
 
   sem = xSemaphoreCreateBinary();
   xSemaphoreGive(sem);
+  
+  xQueue = xQueueCreate(1, sizeof(char)*11); //10 colors in a sequence max
 
-  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 2, NULL);
-  portBASE_TYPE s2 = xTaskCreate(ReadInput, NULL, configMINIMAL_STACK_SIZE, (void*)pcColorSeq, 1, NULL);
+  portBASE_TYPE s1 = xTaskCreate(LEDBlink, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+  portBASE_TYPE s2 = xTaskCreate(ReadInput, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
   
   // check for creation errors
@@ -70,20 +71,32 @@ void setup() {
 }
 
 static void ReadInput(void* arg){
-  char *pcCol = (char*) arg;
+  char *pcCol;
+  BaseType_t xStatus;
 
   while(1){
-            SerialUSB.println("Reading");
-
     xSemaphoreTake(sem, portMAX_DELAY);
-    byte i = 0;
-    if (SerialUSB.available()<20 && SerialUSB.available()>0){
-      SerialUSB.println(i);
-      *(pcCol+i) = SerialUSB.read();
-      if (*(pcCol+i)!='\n' && *(pcCol+i)!='\r') 
-        i++;
+    if(SerialUSB.available()){
+      SerialUSB.println("Reading");
+      
+      if (!uxQueueSpacesAvailable(xQueue))
+        xQueueReset (xQueue);
+      
+      byte i = 0;
+      while (SerialUSB.available()<20 && SerialUSB.available()>0 && i<11){
+        SerialUSB.println(i);
+        *(pcCol+i) = SerialUSB.read();
+        if (*(pcCol+i)!='\n' && *(pcCol+i)!='\r') 
+          i++;
+      }
+      *(pcCol+i)='\0';
+      
+      SerialUSB.println(pcCol);
+      xStatus = xQueueSendToBack( xQueue, pcCol, 0);
+      if (xStatus!=pdPASS){
+        SerialUSB.println("Could not send to the queue.");
+      }
     }
-    *(pcCol+i)='\0';
     xSemaphoreGive(sem);
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
@@ -93,11 +106,18 @@ static void ReadInput(void* arg){
 }
 
 static void LEDBlink(void* arg){
-  char *pcCol = (char*) arg;
-  while(1){
-            SerialUSB.println("Blinking");
+  char *pcColReceived = "R";
+  BaseType_t xStatus;
 
+  while(1){
     xSemaphoreTake(sem, portMAX_DELAY);
+    SerialUSB.println("Blinking");
+    
+    xStatus = xQueueReceive(xQueue, pcColReceived, 0);
+    if (xStatus == pdPASS){ 
+      SerialUSB.print("New Sequence: ");
+      SerialUSB.println(pcColReceived);
+    }
     int i;
     for (i=0; i<strlen(pcCol); i++){
       switch(*(pcCol+i)){
@@ -131,7 +151,6 @@ static void LEDBlink(void* arg){
         pd_rgb_led(PD_TIEL);
         break;
 
-
         case 'W':
         SerialUSB.println("Turning the White LED on");
         pd_rgb_led(PD_WHITE);
@@ -140,24 +159,27 @@ static void LEDBlink(void* arg){
         default:
         SerialUSB.println("Unknown color");
       }
+      if (uxQueueMessagesWaiting(xQueue)) {
+        SerialUSB.println("New order received.");
+        break;
+      }
       xSemaphoreGive(sem);
       vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
       
       xSemaphoreTake(sem, portMAX_DELAY);
+      if (uxQueueMessagesWaiting(xQueue)) {
+        SerialUSB.println("New order received.");
+        break;
+      }
       SerialUSB.println("Turning the LED off");
       pd_rgb_led(PD_OFF);
       xSemaphoreGive(sem);
 
       vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
- 
-      
-    }
+    }   
     SerialUSB.println("Done");
   }
 }
-
-
-
 
 
 void loop() {
