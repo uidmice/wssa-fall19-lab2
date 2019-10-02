@@ -47,8 +47,6 @@ void setup() {
   SerialUSB.begin(9600);
   while(!SerialUSB);
 
-  SerialUSB.println(pcColorSeq);
-
   sem = xSemaphoreCreateBinary();
   xSemaphoreGive(sem);
   
@@ -119,8 +117,8 @@ static void LEDBlink(void* arg){
       SerialUSB.println(pcColReceived);
     }
     int i;
-    for (i=0; i<strlen(pcCol); i++){
-      switch(*(pcCol+i)){
+    for (i=0; i<strlen(pcColReceived); i++){
+      switch(*(pcColReceived+i)){
         case 'R':
         SerialUSB.println("Turning the Red LED on");
         pd_rgb_led(PD_RED);
