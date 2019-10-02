@@ -37,12 +37,11 @@ static void Blink(void* arg){
   digitalWrite(LED_G, HIGH);   
   digitalWrite(LED_B, HIGH);   
 
-  delay(1000);                       // wait for a second
+  vTaskDelay((500L*configTICK_RATE_HZ)/1000L);  
   digitalWrite(LED_R, LOW);   
   digitalWrite(LED_G, LOW);   
   digitalWrite(LED_B, LOW); 
-  delay(1000);                       // wait for a second
-  }
+  vTaskDelay((500L*configTICK_RATE_HZ)/1000L);  }
 }
 
 void loop() {
