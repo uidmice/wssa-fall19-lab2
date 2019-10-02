@@ -13,12 +13,15 @@
 //#define PD_WHITE 7
 //#define PD_OFF 8
 
+SemaphoreHandle_t sem;
 void setup() {
   pd_rgb_led_init();
 
   SerialUSB.begin(9600);
   while(!SerialUSB);
-  
+
+  sem = xSemaphoreCreateCounting(1, 0);
+  xSemaphoreGive(sem);
 
   portBASE_TYPE s1 = xTaskCreate(BlinkRed, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
   portBASE_TYPE s2 = xTaskCreate(BlinkGreen, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
@@ -43,113 +46,156 @@ void setup() {
 
 static void BlinkRed(void* arg){
   while(1){
+    xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the Red LED on");
     pd_rgb_led(PD_RED);
-
+    
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Red LED off");
     pd_rgb_led(PD_OFF);
 
+
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
+
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
+
   }
 }
 
 static void BlinkGreen(void* arg){
   while(1){
+    xSemaphoreTake(sem, portMAX_DELAY);
     SerialUSB.println("Turning the Green LED on");
     pd_rgb_led(PD_GREEN);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Green LED off");
     pd_rgb_led(PD_OFF);
+
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
+
   }
 }
 
 static void BlinkBlue(void* arg){
   while(1){
+        xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the Blue LED on");
     pd_rgb_led(PD_BLUE);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Blue LED off");
     pd_rgb_led(PD_OFF);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
+
   }
 }
 
 static void BlinkYellow(void* arg){
   while(1){
+        xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the Yellow LED on");
     pd_rgb_led(PD_YELLOW);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Yellow LED off");
     pd_rgb_led(PD_OFF);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+        xSemaphoreGive(sem);
+
+
+
   }
 }
 
 static void BlinkPurple(void* arg){
   while(1){
+        xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the Purple LED on");
     pd_rgb_led(PD_PURPLE);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Purple LED off");
     pd_rgb_led(PD_OFF);
+
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
   }
 }
 
 static void BlinkTiel(void* arg){
   while(1){
+        xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the Tiel LED on");
     pd_rgb_led(PD_TIEL);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the Tiel LED off");
     pd_rgb_led(PD_OFF);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
   }
 }
 
 static void BlinkWhite(void* arg){
   while(1){
+        xSemaphoreTake(sem, portMAX_DELAY);
+
     SerialUSB.println("Turning the White LED on");
     pd_rgb_led(PD_WHITE);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
-
+    
     SerialUSB.println("Turning the White LED off");
     pd_rgb_led(PD_OFF);
 
     vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
     SerialUSB.println("Done");
+    xSemaphoreGive(sem);
+
+
+
   }
 }
 

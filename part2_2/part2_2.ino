@@ -72,9 +72,7 @@ static void BlinkRed(void* arg){
 
 static void BlinkGreen(void* arg){
   while(1){
-        xSemaphoreTake(sem, portMAX_DELAY);
-
-
+    xSemaphoreTake(sem, portMAX_DELAY);
     SerialUSB.println("Turning the Green LED on");
     pd_rgb_led(PD_GREEN);
 
@@ -88,7 +86,7 @@ static void BlinkGreen(void* arg){
 
     SerialUSB.println("Done");
     xSemaphoreGive(sem);
-        vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
+    vTaskDelay((500L*configTICK_RATE_HZ)/1000L);
 
 
 

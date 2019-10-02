@@ -69,7 +69,7 @@ void setup() {
 }
 
 static void ReadInput(void* arg){
-  char *pcCol;
+  char pcCol[11];
   BaseType_t xStatus;
 
   while(1){
@@ -81,13 +81,15 @@ static void ReadInput(void* arg){
         xQueueReset (xQueue);
       
       byte i = 0;
-      while (SerialUSB.available()<20 && SerialUSB.available()>0 && i<11){
-        SerialUSB.println(i);
-        *(pcCol+i) = SerialUSB.read();
-        if (*(pcCol+i)!='\n' && *(pcCol+i)!='\r') 
+      while (SerialUSB.available()>0 && i<10){
+       pcCol[i] = SerialUSB.read();
+       if (pcCol[i]!='\n' && pcCol[i]!='\r') 
           i++;
       }
-      *(pcCol+i)='\0';
+      while (SerialUSB.available()>0){
+         SerialUSB.read();
+      }
+      pcCol[i]='\0';
       
       SerialUSB.println(pcCol);
       xStatus = xQueueSendToBack( xQueue, pcCol, 0);
@@ -104,13 +106,11 @@ static void ReadInput(void* arg){
 }
 
 static void LEDBlink(void* arg){
-  char *pcColReceived = "R";
+  char pcColReceived[11];
   BaseType_t xStatus;
 
   while(1){
-    xSemaphoreTake(sem, portMAX_DELAY);
-    SerialUSB.println("Blinking");
-    
+    xSemaphoreTake(sem, portMAX_DELAY);    
     xStatus = xQueueReceive(xQueue, pcColReceived, 0);
     if (xStatus == pdPASS){ 
       SerialUSB.print("New Sequence: ");
@@ -120,36 +120,43 @@ static void LEDBlink(void* arg){
     for (i=0; i<strlen(pcColReceived); i++){
       switch(*(pcColReceived+i)){
         case 'R':
+        case 'r':
         SerialUSB.println("Turning the Red LED on");
         pd_rgb_led(PD_RED);
         break;
 
         case 'B':
+        case 'b':
         SerialUSB.println("Turning the Blue LED on");
         pd_rgb_led(PD_BLUE);
         break;
  
         case 'G':
+        case 'g':
         SerialUSB.println("Turning the Green LED on");
         pd_rgb_led(PD_GREEN);
         break;
         
         case 'P':
+        case 'p':
         SerialUSB.println("Turning the Purple LED on");
         pd_rgb_led(PD_PURPLE);
         break;
 
         case 'Y':
+        case 'y':
         SerialUSB.println("Turning the Yellow LED on");
         pd_rgb_led(PD_YELLOW);
         break;
  
         case 'T':
+        case 't':
         SerialUSB.println("Turning the Tiel LED on");
         pd_rgb_led(PD_TIEL);
         break;
 
         case 'W':
+        case 'w':
         SerialUSB.println("Turning the White LED on");
         pd_rgb_led(PD_WHITE);
         break;
@@ -159,6 +166,7 @@ static void LEDBlink(void* arg){
       }
       if (uxQueueMessagesWaiting(xQueue)) {
         SerialUSB.println("New order received.");
+        xSemaphoreGive(sem);
         break;
       }
       xSemaphoreGive(sem);
@@ -167,6 +175,7 @@ static void LEDBlink(void* arg){
       xSemaphoreTake(sem, portMAX_DELAY);
       if (uxQueueMessagesWaiting(xQueue)) {
         SerialUSB.println("New order received.");
+        xSemaphoreGive(sem);
         break;
       }
       SerialUSB.println("Turning the LED off");
