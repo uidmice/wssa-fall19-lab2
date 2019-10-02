@@ -1,8 +1,8 @@
 # Prerequisites
 *.d
 *.DS_Store
-Blink_managingTasks*
-Part1_others*
+Blink_managingTasks/
+Part1_others/
 # Object files
 *.o
 *.ko
